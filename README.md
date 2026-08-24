@@ -6,6 +6,8 @@ A modern, feature-rich note-taking application built with Qt6 and C++17.
 
 [![Qt6](https://img.shields.io/badge/Qt6-6.11-41CD52?style=flat&logo=qt)](https://qt.io)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C?style=flat&logo=cplusplus)](https://isocpp.org)
+[![CMake](https://img.shields.io/badge/CMake-3.20+-064F82?style=flat&logo=cmake)](https://cmake.org)
+[![OpenSSL](https://img.shields.io/badge/OpenSSL-3.x-8B5CF6?style=flat)](https://openssl.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Linux-lightgrey?style=flat)]()
 
@@ -16,20 +18,24 @@ A modern, feature-rich note-taking application built with Qt6 and C++17.
 ## Screenshots
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Allex Notes                         🔍 Search       + New  │
-├───────────────┬─────────────────────────────────────────────┤
-│  All Notes (4)│                                             │
-│  📁 C++ (2)   │  My first note                              │
-│  📁 Linux (1) │  ───────────────────────────────────────    │
-│               │                                             │
-│  📄 C++       │  Start writing your note here...            │
-│  📄 Linux     │                                             │
-│  📄 Fedora    │                                             │
-│  📄 Projects  │                                             │
-├───────────────┴─────────────────────────────────────────────┤
-│  4 Notes                                      Saved ✓       │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│  Allex Notes                              🔍 Search    + New        │
+├──────────┬──────────────────────────────────────────────────────────┤
+│  FILE    │                                                          │
+│          │  My first note                                           │
+│  VIEW    │  ──────────────────────────────────────────────────────  │
+│  SYNC    │                                                          │
+│  SETTINGS│  Start writing your note here...                         │
+│          │                                                          │
+│  FOLDERS │                                                          │
+│  📁 C++  │                                                          │
+│  📁 Linux│                                                          │
+│          │                                                          │
+│  NOTES   ├──────────────────────────────────────────────────────────┤
+│  📄 C++  │  Words: 12   Characters: 87              ☁ Synced ✓     │
+│  📄 Linux│                                                          │
+│  📄 Note1└──────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -97,13 +103,13 @@ A modern, feature-rich note-taking application built with Qt6 and C++17.
 
 - CMake 3.20+
 - GCC 11+ or Clang 12+
-- Qt6 Widgets + PrintSupport + NetworkAuth + Svg
-- OpenSSL (for encryption)
+- Qt6 Widgets + PrintSupport + NetworkAuth + Svg (for icon rendering)
+- OpenSSL 3.x (for AES-256-GCM encryption)
 
 ### Install dependencies (Fedora)
 
 ```bash
-sudo dnf install qt6-qtbase-devel qt6-qtnetworkauth-devel openssl-devel cmake gcc-c++
+sudo dnf install qt6-qtbase-devel qt6-qtnetworkauth-devel qt6-qtsvg-devel openssl-devel cmake gcc-c++
 ```
 
 ### Build
@@ -165,7 +171,7 @@ Notes are stored as JSON files in:
     └── <uuid>.json
 ```
 
-Each note contains: id, title, content, created/modified timestamps, folder, color, pin status, and optional reminder datetime.
+Each note contains: id, title, content, created/modified timestamps, folder, color, pin status, optional reminder datetime, and optional locked status (encrypted content stored as ciphertext).
 
 ---
 
@@ -258,6 +264,16 @@ File → Restore → import a `.allex` backup file. Merge logic:
 | Sign out | Sync → Sign out |
 | Manual sync | Sync → Sync Now (`Ctrl+Shift+G`) |
 | Status | Status bar shows `☁ Synced 2m ago` |
+
+---
+
+## What's New
+
+| Version | Features |
+|---|---|
+| **v1** | Basic CRUD, search, auto-save, dark mode, reminders, system tray |
+| **v2** | Google Drive sync, folders, pin notes, color tags, trash bin, markdown preview, export |
+| **v3** | App icon, desktop launcher, autostart, master password (AES-256-GCM), backup/restore, search highlight |
 
 ---
 
