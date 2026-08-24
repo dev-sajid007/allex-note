@@ -305,6 +305,8 @@ void MainWindow::setupShortcuts() {
 // --- Icon + Tray ---
 
 void MainWindow::setupTray() {
+    if (!QSystemTrayIcon::isSystemTrayAvailable()) return;
+
     m_trayIcon = new QSystemTrayIcon(this);
     m_trayIcon->setIcon(QIcon(":/allex-notes-128.png"));
     m_trayIcon->setToolTip("Allex Notes");
@@ -1395,7 +1397,7 @@ void MainWindow::toggleDarkMode() {
 
 void MainWindow::closeEvent(QCloseEvent *event) {
     saveSession();
-    if (m_trayIcon->isVisible()) {
+    if (m_trayIcon && m_trayIcon->isVisible()) {
         hide();
         event->ignore();
     } else {

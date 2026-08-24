@@ -1,9 +1,9 @@
 <RCC>
     <qresource prefix="/">
-        <file>../assets/icons/allex-notes-16.png</file>
-        <file>../assets/icons/allex-notes-32.png</file>
-        <file>../assets/icons/allex-notes-48.png</file>
-        <file>../assets/icons/allex-notes-128.png</file>
-        <file>../assets/icons/allex-notes-256.png</file>
+        <file alias="allex-notes-16.png">../assets/icons/allex-notes-16.png</file>
+        <file alias="allex-notes-32.png">../assets/icons/allex-notes-32.png</file>
+        <file alias="allex-notes-48.png">../assets/icons/allex-notes-48.png</file>
+        <file alias="allex-notes-128.png">../assets/icons/allex-notes-128.png</file>
+        <file alias="allex-notes-256.png">../assets/icons/allex-notes-256.png</file>
     </qresource>
 </RCC>
