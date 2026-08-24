@@ -277,6 +277,17 @@ File → Restore → import a `.allex` backup file. Merge logic:
 
 ---
 
+## Troubleshooting
+
+| Issue | Fix |
+|---|---|
+| `No Icon set` or crash on launch | Rebuild with `cmake --build build` (icon resource must be compiled) |
+| Segfault on restore session | Ensure latest code is built (`git pull && cmake --build build`) |
+| Tray icon not visible | Some Wayland sessions don't support system tray — app runs normally without it |
+| Sync fails | Re-authenticate via **Sync → Sign in to Google** |
+
+---
+
 ## License
 
 MIT License
