@@ -171,7 +171,10 @@ void MainWindow::setupUi() {
     m_previewBtn->setFixedWidth(80);
     m_lockIndicator = new QLabel("");
     m_lockIndicator->setStyleSheet("color: #e74c3c; font-size: 12px; font-weight: bold;");
+    m_reminderLabel = new QLabel("");
+    m_reminderLabel->setStyleSheet("color: #0078d4; font-size: 11px;");
     editorToolbar->addStretch();
+    editorToolbar->addWidget(m_reminderLabel);
     editorToolbar->addWidget(m_lockIndicator);
     editorToolbar->addWidget(m_previewBtn);
     editorLayout->addLayout(editorToolbar);
