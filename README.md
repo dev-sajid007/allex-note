@@ -53,6 +53,7 @@ A modern, feature-rich note-taking application built with Qt6 and C++17.
 - **Export** — save as `.txt`, `.md`, or `.pdf`
 
 ### Experience
+- **Google Drive sync** — sign in once, notes auto-sync to your Drive
 - **Dark mode** — toggle with `Ctrl+D`, persisted across sessions
 - **Reminders** — set datetime reminders with desktop notifications
 - **System tray** — minimize to tray, click to show/hide
@@ -72,6 +73,7 @@ A modern, feature-rich note-taking application built with Qt6 and C++17.
 | Toggle preview | `Ctrl+P` |
 | Toggle dark mode | `Ctrl+D` |
 | Delete note | `Delete` |
+| Sync now | `Ctrl+Shift+G` |
 | Quit | `Ctrl+Q` |
 
 ---
@@ -82,12 +84,12 @@ A modern, feature-rich note-taking application built with Qt6 and C++17.
 
 - CMake 3.20+
 - GCC 11+ or Clang 12+
-- Qt6 Widgets + PrintSupport
+- Qt6 Widgets + PrintSupport + NetworkAuth
 
 ### Install dependencies (Fedora)
 
 ```bash
-sudo dnf install qt6-qtbase-devel cmake gcc-c++
+sudo dnf install qt6-qtbase-devel qt6-qtnetworkauth-devel cmake gcc-c++
 ```
 
 ### Build
@@ -116,7 +118,9 @@ allex-note/
 │   ├── main.cpp                # Application entry point
 │   ├── mainwindow.cpp/hpp      # Main window UI + logic
 │   ├── note.cpp/hpp            # Note data model (JSON serialization)
-│   └── notemanager.cpp/hpp     # CRUD operations + file I/O
+│   ├── notemanager.cpp/hpp     # CRUD operations + file I/O
+│   ├── authmanager.cpp/hpp     # Google OAuth2 authentication
+│   └── syncmanager.cpp/hpp     # Google Drive sync engine
 ├── resources/
 │   └── resources.qrc           # Qt resource file
 ├── assets/
@@ -152,7 +156,42 @@ Each note contains: id, title, content, created/modified timestamps, folder, col
 | **QSystemTrayIcon** | System tray integration |
 | **QPrinter** | PDF export |
 | **QTextDocument** | Markdown rendering |
+| **QOAuth2** | Google OAuth2 authentication |
+| **QNetworkAccessManager** | Drive REST API calls |
 | **notify-send** | Desktop notifications |
+
+---
+
+## Google Drive Sync
+
+### Setup (one-time, ~5 minutes)
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com)
+2. Create a new project (or use existing)
+3. Enable **Google Drive API** in the API Library
+4. Configure **OAuth consent screen**: External, add your Gmail as test user
+5. Go to **Credentials** → Create **OAuth Client ID** → Desktop app
+6. Copy the **Client ID** and **Client Secret**
+7. In Allex Notes: **Sync → Sign in to Google** → paste credentials
+8. Browser opens → sign in with your Google account → grant access
+9. Done! Notes auto-sync every 5 minutes and after each save
+
+### How it works
+
+- Notes sync to a hidden `appDataFolder` in your Google Drive (won't appear in your main Drive)
+- Each note = one `<uuid>.json` file in the Drive
+- **Conflict resolution**: last-modified timestamp wins
+- **Merge**: notes on other devices auto-download, local changes auto-upload
+- OAuth tokens auto-refresh (valid for ~7 days in test mode)
+
+### Menu
+
+| Action | How |
+|---|---|
+| Sign in | Sync → Sign in to Google |
+| Sign out | Sync → Sign out |
+| Manual sync | Sync → Sync Now (`Ctrl+Shift+G`) |
+| Status | Status bar shows `☁ Synced 2m ago` |
 
 ---
 

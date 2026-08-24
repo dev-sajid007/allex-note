@@ -7,7 +7,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets PrintSupport)
+find_package(Qt6 REQUIRED COMPONENTS Widgets PrintSupport Network NetworkAuth)
 
 add_executable(allex-notes
     src/main.cpp
@@ -17,7 +17,13 @@ add_executable(allex-notes
     src/note.hpp
     src/notemanager.cpp
     src/notemanager.hpp
+    src/authmanager.cpp
+    src/authmanager.hpp
+    src/syncmanager.cpp
+    src/syncmanager.hpp
     resources/resources.qrc
 )
 
-target_link_libraries(allex-notes PRIVATE Qt6::Widgets Qt6::PrintSupport)
+target_link_libraries(allex-notes PRIVATE
+    Qt6::Widgets Qt6::PrintSupport Qt6::Network Qt6::NetworkAuth
+)

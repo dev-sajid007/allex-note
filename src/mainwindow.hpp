@@ -1,6 +1,8 @@
 #pragma once
 
 #include "notemanager.hpp"
+#include "authmanager.hpp"
+#include "syncmanager.hpp"
 
 #include <QMainWindow>
 #include <QLineEdit>
@@ -57,11 +59,19 @@ private slots:
     void checkReminders();
     void onTrayActivated(QSystemTrayIcon::ActivationReason reason);
 
+    // Google Sync
+    void signInToGoogle();
+    void signOutFromGoogle();
+    void triggerSync();
+    void onSyncComplete();
+    void onSyncError(const QString &error);
+
 private:
     void setupUi();
     void setupMenu();
     void setupShortcuts();
     void setupTray();
+    void setupSync();
     void loadNotes();
     void populateList(const QList<Note> &notes);
     void populateTree();
@@ -72,11 +82,14 @@ private:
     void showFolderContextMenu(const QPoint &pos);
     void updateWordCount();
     void updateReminderLabel();
+    void updateSyncStatus();
     void saveSession();
     void restoreSession();
     QString currentFolder() const;
 
     NoteManager *m_manager;
+    AuthManager *m_auth;
+    SyncManager *m_sync;
     QTimer *m_autoSaveTimer;
     QTimer *m_reminderTimer;
     QSettings m_settings;
@@ -108,6 +121,7 @@ private:
     QLabel *m_statusCount;
     QLabel *m_statusSaved;
     QLabel *m_statusWords;
+    QLabel *m_syncStatusLabel;
 
     QSystemTrayIcon *m_trayIcon;
     QSet<QUuid> m_firedReminders;

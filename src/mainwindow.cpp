@@ -28,6 +28,10 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , m_manager(new NoteManager(
           QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/data"))
+    , m_auth(new AuthManager(this))
+    , m_sync(new SyncManager(m_auth,
+          QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/data",
+          this))
     , m_autoSaveTimer(new QTimer(this))
     , m_reminderTimer(new QTimer(this))
     , m_settings("Allex", "AllexNotes")
@@ -36,12 +40,13 @@ MainWindow::MainWindow(QWidget *parent)
     setupMenu();
     setupShortcuts();
     setupTray();
+    setupSync();
 
     connect(m_autoSaveTimer, &QTimer::timeout, this, &MainWindow::autoSave);
     m_autoSaveTimer->setSingleShot(true);
 
     connect(m_reminderTimer, &QTimer::timeout, this, &MainWindow::checkReminders);
-    m_reminderTimer->start(30000); // check every 30s
+    m_reminderTimer->start(30000);
 
     if (isDarkMode())
         toggleDarkMode();
@@ -190,6 +195,9 @@ void MainWindow::setupUi() {
     m_statusCount = new QLabel("0 Notes");
     m_statusWords = new QLabel("");
     m_statusSaved = new QLabel("Saved \u2713");
+    m_syncStatusLabel = new QLabel("");
+    m_syncStatusLabel->setStyleSheet("color: #0078d4; font-size: 11px;");
+    statusBar()->addPermanentWidget(m_syncStatusLabel);
     statusBar()->addPermanentWidget(m_statusWords);
     statusBar()->addPermanentWidget(m_statusCount);
     statusBar()->addPermanentWidget(m_statusSaved);
@@ -293,6 +301,12 @@ void MainWindow::setupMenu() {
     viewMenu->addAction("Toggle Dark Mode", QKeySequence("Ctrl+D"), this, &MainWindow::toggleDarkMode);
     viewMenu->addAction("Toggle Preview", QKeySequence("Ctrl+P"), this, &MainWindow::togglePreview);
     viewMenu->addAction("New Folder", this, &MainWindow::createFolder);
+
+    QMenu *syncMenu = menuBar()->addMenu("Sync");
+    syncMenu->addAction("Sign in to Google", this, &MainWindow::signInToGoogle);
+    syncMenu->addAction("Sign out", this, &MainWindow::signOutFromGoogle);
+    syncMenu->addSeparator();
+    syncMenu->addAction("Sync Now", QKeySequence("Ctrl+Shift+G"), this, &MainWindow::triggerSync);
 }
 
 void MainWindow::setupShortcuts() {
@@ -783,7 +797,137 @@ void MainWindow::onContentChanged() {
     m_autoSaveTimer->start(2000);
 }
 
-void MainWindow::autoSave() { saveNote(); }
+void MainWindow::autoSave() {
+    saveNote();
+    // Auto-sync after save if signed in
+    if (m_auth->isSignedIn()) {
+        triggerSync();
+    }
+}
+
+// --- Google Sync ---
+
+void MainWindow::setupSync() {
+    connect(m_auth, &AuthManager::signedIn, this, [this]() {
+        updateSyncStatus();
+        triggerSync();
+    });
+    connect(m_auth, &AuthManager::signedOut, this, [this]() {
+        updateSyncStatus();
+    });
+    connect(m_auth, &AuthManager::authError, this, [this](const QString &err) {
+        m_syncStatusLabel->setText("Auth error");
+        QMessageBox::warning(this, "Sign-in Error", err);
+    });
+    connect(m_sync, &SyncManager::syncComplete, this, &MainWindow::onSyncComplete);
+    connect(m_sync, &SyncManager::syncError, this, &MainWindow::onSyncError);
+    connect(m_sync, &SyncManager::syncProgress, this, [this](const QString &s) {
+        m_syncStatusLabel->setText("\u2601 " + s);
+    });
+    updateSyncStatus();
+}
+
+void MainWindow::signInToGoogle() {
+    QDialog dialog(this);
+    dialog.setWindowTitle("Sign in to Google");
+    dialog.setMinimumWidth(400);
+
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+
+    QLabel *info = new QLabel(
+        "To sync notes with Google Drive, you need a Google OAuth2 Client ID.\n\n"
+        "<b>Steps:</b><ol>"
+        "<li>Go to <a href='https://console.cloud.google.com'>console.cloud.google.com</a></li>"
+        "<li>Create a project (or use existing)</li>"
+        "<li>Enable <b>Google Drive API</b></li>"
+        "<li>OAuth consent screen → External → add your Gmail as test user</li>"
+        "<li>Credentials → OAuth Client ID → <b>Desktop app</b></li>"
+        "<li>Copy Client ID and Client Secret below</li>"
+        "</ol>"
+    );
+    info->setWordWrap(true);
+    info->setOpenExternalLinks(true);
+    layout->addWidget(info);
+
+    layout->addWidget(new QLabel("Client ID:"));
+    QLineEdit *idEdit = new QLineEdit;
+    idEdit->setPlaceholderText("xxxx.apps.googleusercontent.com");
+    layout->addWidget(idEdit);
+
+    layout->addWidget(new QLabel("Client Secret:"));
+    QLineEdit *secretEdit = new QLineEdit;
+    secretEdit->setEchoMode(QLineEdit::Password);
+    layout->addWidget(secretEdit);
+
+    QHBoxLayout *btnLayout = new QHBoxLayout;
+    QPushButton *okBtn = new QPushButton("Sign in");
+    QPushButton *cancelBtn = new QPushButton("Cancel");
+    btnLayout->addStretch();
+    btnLayout->addWidget(okBtn);
+    btnLayout->addWidget(cancelBtn);
+    layout->addLayout(btnLayout);
+
+    connect(okBtn, &QPushButton::clicked, &dialog, &QDialog::accept);
+    connect(cancelBtn, &QPushButton::clicked, &dialog, &QDialog::reject);
+
+    if (dialog.exec() != QDialog::Accepted) return;
+
+    QString clientId = idEdit->text().trimmed();
+    QString clientSecret = secretEdit->text().trimmed();
+
+    if (clientId.isEmpty() || clientSecret.isEmpty()) {
+        QMessageBox::warning(this, "Error", "Client ID and Secret are required.");
+        return;
+    }
+
+    m_auth->signIn(clientId, clientSecret);
+}
+
+void MainWindow::signOutFromGoogle() {
+    auto reply = QMessageBox::question(this, "Sign Out",
+        "Sign out of Google? Sync will stop.",
+        QMessageBox::Yes | QMessageBox::No);
+    if (reply != QMessageBox::Yes) return;
+    m_auth->signOut();
+}
+
+void MainWindow::triggerSync() {
+    if (!m_auth->isSignedIn()) {
+        m_syncStatusLabel->setText("\u2601 Not signed in");
+        return;
+    }
+    m_sync->syncNow();
+}
+
+void MainWindow::onSyncComplete() {
+    updateSyncStatus();
+    loadNotes(); // refresh list with any synced changes
+}
+
+void MainWindow::onSyncError(const QString &error) {
+    m_syncStatusLabel->setText("Sync error");
+    QMessageBox::warning(this, "Sync Error", error);
+}
+
+void MainWindow::updateSyncStatus() {
+    if (!m_auth->isSignedIn()) {
+        m_syncStatusLabel->setText("\u2601 Not signed in");
+        return;
+    }
+    if (m_sync->isSyncing()) {
+        m_syncStatusLabel->setText("\u2601 Syncing...");
+        return;
+    }
+    QDateTime last = m_sync->lastSynced();
+    if (last.isValid()) {
+        qint64 secs = last.secsTo(QDateTime::currentDateTime());
+        if (secs < 60) m_syncStatusLabel->setText("\u2601 Synced just now");
+        else if (secs < 3600) m_syncStatusLabel->setText(QString("\u2601 Synced %1m ago").arg(secs / 60));
+        else m_syncStatusLabel->setText(QString("\u2601 Synced %1h ago").arg(secs / 3600));
+    } else {
+        m_syncStatusLabel->setText("\u2601 Signed in");
+    }
+}
 
 // --- Session ---
 
