@@ -59,6 +59,17 @@ A modern, feature-rich note-taking application built with Qt6 and C++17.
 - **System tray** — minimize to tray, click to show/hide
 - **Session restore** — window position and last note restored on startup
 - **Keyboard shortcuts** — all major actions accessible via shortcuts
+- **App icon** — custom notepad icon, bundled as SVG + PNG
+
+### Security
+- **Master password** — PBKDF2-HMAC-SHA256 + AES-256-GCM encryption (OpenSSL)
+- **Lock screen** — app locks on startup or manually from tray
+- **Per-note lock** — encrypt individual notes, content unreadable without password
+
+### Backup & Search
+- **Backup/Restore** — export all notes to `.allex` JSON bundle, import with merge
+- **Search highlight** — matches highlighted in yellow in the editor
+- **F3 navigation** — jump to next search match
 
 ---
 
@@ -73,7 +84,9 @@ A modern, feature-rich note-taking application built with Qt6 and C++17.
 | Toggle preview | `Ctrl+P` |
 | Toggle dark mode | `Ctrl+D` |
 | Delete note | `Delete` |
+| Backup | `Ctrl+Shift+B` |
 | Sync now | `Ctrl+Shift+G` |
+| Next match | `F3` |
 | Quit | `Ctrl+Q` |
 
 ---
@@ -84,12 +97,13 @@ A modern, feature-rich note-taking application built with Qt6 and C++17.
 
 - CMake 3.20+
 - GCC 11+ or Clang 12+
-- Qt6 Widgets + PrintSupport + NetworkAuth
+- Qt6 Widgets + PrintSupport + NetworkAuth + Svg
+- OpenSSL (for encryption)
 
 ### Install dependencies (Fedora)
 
 ```bash
-sudo dnf install qt6-qtbase-devel qt6-qtnetworkauth-devel cmake gcc-c++
+sudo dnf install qt6-qtbase-devel qt6-qtnetworkauth-devel openssl-devel cmake gcc-c++
 ```
 
 ### Build
@@ -107,24 +121,34 @@ cmake --build build
 ./build/allex-notes
 ```
 
+### Install (system-wide)
+
+```bash
+cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
+cmake --install build
+```
+
 ---
 
 ## Project Structure
 
 ```
 allex-note/
-├── CMakeLists.txt              # Build configuration
+├── CMakeLists.txt              # Build configuration + install targets
+├── allex-notes.desktop         # Desktop launcher entry
 ├── src/
 │   ├── main.cpp                # Application entry point
-│   ├── mainwindow.cpp/hpp      # Main window UI + logic
+│   ├── mainwindow.cpp/hpp      # Main window UI + all features
 │   ├── note.cpp/hpp            # Note data model (JSON serialization)
 │   ├── notemanager.cpp/hpp     # CRUD operations + file I/O
 │   ├── authmanager.cpp/hpp     # Google OAuth2 authentication
-│   └── syncmanager.cpp/hpp     # Google Drive sync engine
+│   ├── syncmanager.cpp/hpp     # Google Drive sync engine
+│   └── crypto.cpp/hpp          # AES-256-GCM + PBKDF2 encryption
+├── assets/icons/
+│   ├── allex-notes.svg         # Source icon
+│   └── allex-notes-{16..256}.png  # Rasterized icons
 ├── resources/
-│   └── resources.qrc           # Qt resource file
-├── assets/
-│   └── icons/                  # Application icons
+│   └── resources.qrc           # Qt resource file (icons embedded)
 └── data/                       # Note storage (runtime)
 ```
 
@@ -158,7 +182,49 @@ Each note contains: id, title, content, created/modified timestamps, folder, col
 | **QTextDocument** | Markdown rendering |
 | **QOAuth2** | Google OAuth2 authentication |
 | **QNetworkAccessManager** | Drive REST API calls |
+| **OpenSSL** | AES-256-GCM encryption |
+| **QCryptographicHash** | PBKDF2 password hashing |
 | **notify-send** | Desktop notifications |
+
+---
+
+## Password Protection
+
+### Setup
+
+1. **Settings → Set Master Password** → enter and confirm password
+2. On next startup, lock screen appears automatically
+
+### Features
+
+| Feature | How |
+|---|---|
+| Lock app | Settings → Lock App, or tray → Lock |
+| Lock a note | Right-click note → Lock Note |
+| Unlock note | Right-click → Unlock Note → enter password |
+| Change password | Settings → Set Master Password (enter old first) |
+| Remove password | Set new password → leave blank → confirm |
+
+### Encryption
+
+- Passwords hashed with **PBKDF2-HMAC-SHA256** (100,000 iterations, random salt)
+- Note content encrypted with **AES-256-GCM** (authenticated encryption)
+- Salt stored in `QSettings`, never in plaintext
+
+---
+
+## Backup & Restore
+
+### Backup
+
+File → Backup → saves a `.allex` file containing all notes as JSON.
+
+### Restore
+
+File → Restore → import a `.allex` backup file. Merge logic:
+- Notes missing locally → added
+- Notes modified after backup → kept if backup is newer
+- Existing notes → kept if local is newer
 
 ---
 

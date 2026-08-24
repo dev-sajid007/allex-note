@@ -18,6 +18,8 @@
 #include <QStackedWidget>
 #include <QTextBrowser>
 #include <QSystemTrayIcon>
+#include <QTextCursor>
+#include <QVector>
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -66,6 +68,21 @@ private slots:
     void onSyncComplete();
     void onSyncError(const QString &error);
 
+    // Password
+    void setupMasterPassword();
+    void lockApp();
+    void toggleNoteLock();
+    void unlockNote();
+    bool showLockDialog();
+
+    // Backup
+    void backupNotes();
+    void restoreNotes();
+
+    // Search highlight
+    void updateSearchHighlights();
+    void nextSearchMatch();
+
 private:
     void setupUi();
     void setupMenu();
@@ -85,7 +102,13 @@ private:
     void updateSyncStatus();
     void saveSession();
     void restoreSession();
+    void applyIcon();
     QString currentFolder() const;
+
+    // Autostart
+    void enableAutostart();
+    void disableAutostart();
+    bool isAutostartEnabled() const;
 
     NoteManager *m_manager;
     AuthManager *m_auth;
@@ -97,6 +120,9 @@ private:
     QUuid m_currentNoteId;
     bool m_isDirty = false;
     bool m_showingTrash = false;
+    QString m_masterPasswordHash;
+    QByteArray m_masterSalt;
+    bool m_appLocked = false;
 
     QSplitter *m_splitter;
     QLineEdit *m_searchBox;
@@ -118,6 +144,7 @@ private:
     QStackedWidget *m_editorStack;
     QPushButton *m_previewBtn;
     QLabel *m_reminderLabel;
+    QLabel *m_lockIndicator;
     QLabel *m_statusCount;
     QLabel *m_statusSaved;
     QLabel *m_statusWords;
@@ -125,4 +152,7 @@ private:
 
     QSystemTrayIcon *m_trayIcon;
     QSet<QUuid> m_firedReminders;
+
+    QVector<QTextEdit::ExtraSelection> m_searchHighlights;
+    int m_currentSearchIndex = -1;
 };

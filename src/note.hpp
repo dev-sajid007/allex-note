@@ -37,6 +37,11 @@ public:
     void clearReminder() { m_reminder = QDateTime(); }
     bool hasReminder() const { return m_reminder.isValid(); }
 
+    bool isLocked() const { return m_locked; }
+    void setLocked(bool locked) { m_locked = locked; }
+    QByteArray lockedSalt() const { return m_lockedSalt; }
+    void setLockedSalt(const QByteArray &salt) { m_lockedSalt = salt; }
+
     bool isNull() const { return m_id.isNull(); }
 
     QJsonObject toJson() const;
@@ -53,4 +58,6 @@ private:
     QString m_folder;
     bool m_trashed = false;
     QDateTime m_reminder;
+    bool m_locked = false;
+    QByteArray m_lockedSalt;
 };

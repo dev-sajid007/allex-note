@@ -31,6 +31,9 @@ QJsonObject Note::toJson() const {
         obj["reminder"] = m_reminder.toString(Qt::ISODate);
     else
         obj["reminder"] = QString();
+    obj["locked"] = m_locked;
+    if (!m_lockedSalt.isEmpty())
+        obj["lockedSalt"] = QString(m_lockedSalt.toBase64());
     return obj;
 }
 
@@ -48,5 +51,9 @@ Note Note::fromJson(const QJsonObject &obj) {
     QString rem = obj["reminder"].toString();
     if (!rem.isEmpty())
         note.m_reminder = QDateTime::fromString(rem, Qt::ISODate);
+    note.m_locked = obj["locked"].toBool();
+    QString saltStr = obj["lockedSalt"].toString();
+    if (!saltStr.isEmpty())
+        note.m_lockedSalt = QByteArray::fromBase64(saltStr.toUtf8());
     return note;
 }

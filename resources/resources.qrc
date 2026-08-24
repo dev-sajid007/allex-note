@@ -1,4 +1,9 @@
 <RCC>
     <qresource prefix="/">
+        <file>../assets/icons/allex-notes-16.png</file>
+        <file>../assets/icons/allex-notes-32.png</file>
+        <file>../assets/icons/allex-notes-48.png</file>
+        <file>../assets/icons/allex-notes-128.png</file>
+        <file>../assets/icons/allex-notes-256.png</file>
     </qresource>
 </RCC>
